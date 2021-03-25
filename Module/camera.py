@@ -15,10 +15,12 @@ class camera(module_base):
         self.visible = False
         self.windowName = None
         self.shape = None
+        self.initShape = None
         self.vis = None
         self.isShowTrajectory= False
         self.trajectoryShape = o3d.geometry.PointCloud()
         self.trajectoryVis = None
+        self.isfixed = False
     def write_camera_intrinsic(self,filename):
         '''
         将相机内参写入文件
@@ -96,6 +98,7 @@ class camera(module_base):
 
         '''
         try:
+            self.initShape = o3d.io.read_line_set(filename)
             self.shape = o3d.io.read_line_set(filename)
         except Exception:
             print("cannot read parameters from {}".format(filename))
@@ -124,7 +127,7 @@ class camera(module_base):
         '''
         self.visible=isVisble
 
-    def showCapture(self,scene,windowName):
+    def showCapture(self,scene,windows):
         '''
         展示相机看见的视野
         Args:
@@ -134,7 +137,7 @@ class camera(module_base):
 
         '''
         self.vis = o3d.Visualizer()
-        self.vis.create_window(window_name=windowName, width=640, height=480, left=10, top=10, visible=True)
+        self.vis.create_window(window_name=windows["windowsName"], width=windows["width"], height=windows["height"], left=windows["left"], top=windows["top"], visible=True)
         self.vis.get_render_option().point_size = 10
         for geo in scene:
             self.vis.add_geometry(geo)
@@ -182,31 +185,28 @@ class camera(module_base):
         Returns:
 
         '''
+        if self.isVisble():
+            points = np.asarray(self.initShape.points)
+            points = np.append(points,np.ones([points.shape[0],1]),1).T
+            points = np.dot(np.linalg.inv(self.parameters.extrinsic),points).T
+            self.shape.points = o3d.Vector3dVector(points[:,:3])
         ctr = self.vis.get_view_control()
-        param = ctr.convert_to_pinhole_camera_parameters()
-
-        # self.intrinsic = param.intrinsic
-        param.extrinsic = self.parameters.extrinsic
-        # param.intrinsic = self.parameters.intrinsic
-        ctr.convert_from_pinhole_camera_parameters(param)
-
-        # front = [param.extrinsic[0,3],param.extrinsic[1,3],param.extrinsic[2,3]]
-        # lookat = [0,0,0]
-        # ctr.set_lookat(lookat)
-        # ctr.set_front(front)
+        if not self.isfixed:
+            param = ctr.convert_to_pinhole_camera_parameters()
+            param.extrinsic = self.parameters.extrinsic
+            ctr.convert_from_pinhole_camera_parameters(param)
         self.vis.update_geometry()
         self.vis.poll_events()
         self.vis.update_renderer()
 
 
-    def showTrajectory(self,param):
+    def showTrajectory(self,windows):
         self.trajectoryVis = o3d.Visualizer()
-        self.trajectoryVis.create_window(window_name="trajectory", width=640, height=480, left=650, top=10, visible=True)
+        self.trajectoryVis.create_window(window_name=windows["windowsName"], width=windows["width"], height=windows["height"],
+                               left=windows["left"], top=windows["top"], visible=True)
         self.trajectoryVis.get_render_option().point_size = 5
         axis_pcd = o3d.geometry.create_mesh_coordinate_frame(size=0.5, origin=[0, 0, 0])
         self.trajectoryVis.add_geometry(axis_pcd)
-        # self.trajectoryVis.add_geometry(self.trajectoryShape)
-        self.trajectoryVis.get_view_control().convert_from_pinhole_camera_parameters(param)
 
     def updateTrajectory(self):
         self.trajectoryVis.update_geometry()

@@ -7,6 +7,7 @@ import open3d
 import numpy as np
 import cv2
 from Module.camera import camera
+from Module.window import windowUtils
 import transforms3d as t3d
 def camera_shape_create():
     '''
@@ -55,9 +56,10 @@ def camera_test_capture():
 
     '''
     pcd = open3d.io.read_point_cloud('../data/testDate/8_input.ply')
-    external_camera = open3d.io.read_pinhole_camera_parameters("../config/externalCamera.json")
+    # external_camera = open3d.io.read_pinhole_camera_parameters("../config/externalCamera.json")
     camera1 = camera()
     camera1.setVisble(True)
+    camera1.setShape("../config/camera_shape.ply")
     width, height, fx, fy, cx, cy = 640, 480, 450.2, 450.4, 316.3, 293.5
     camera1.intrinsic = open3d.camera.PinholeCameraIntrinsic(width, height, fx, fy, cx, cy)
     extrinsic = np.array([[1,0,0,0.0078125],
@@ -71,7 +73,7 @@ def camera_test_capture():
                        [0,0,0,1]])
     camera1.showCapture([pcd],"win1")
     camera1.isShowTrajectory=True
-    camera1.showTrajectory(external_camera)
+    camera1.showTrajectory()
     camera1.setExtrisic(camera1.parameters.extrinsic)
     i=0
     while(True):
@@ -86,10 +88,10 @@ def camera_test_capture():
     while(True):
         camera1.updateCapture()
         camera1.updateTrajectory()
-def show_traj():
+def show_traj(windows):
     pcl = open3d.io.read_point_cloud("../data/testDate/a.ply")
     vis = open3d.Visualizer()
-    vis.create_window(window_name='Open3D_1', width=640, height=480, left=10, top=10, visible=True)
+    vis.create_window(window_name=windows["windowsName"], width=windows["width"], height=windows["height"], left=windows["left"], top=windows["top"], visible=True)
     vis.add_geometry(pcl)
     param = vis.get_view_control().convert_to_pinhole_camera_parameters()
     open3d.write_pinhole_camera_parameters("../config/externalCamera.json",param)
@@ -99,9 +101,43 @@ def show_traj():
         vis.poll_events()
         vis.update_renderer()
         cv2.waitKey(100)
+def camera_shape_test():
+    camera1 = camera()
+    WindowUtils = windowUtils()
+    camera1.setVisble(True)
+    camera1.setShape("../config/camera_shape.ply")
+    camera2 = camera()
+    camera2.isfixed = True
+    camera1.read_camera_parameters("../config/externalCamera.json")
+
+    pcd = open3d.io.read_point_cloud('../data/testDate/8_input.ply')
+    extrinsic = np.array([[1, 0, 0, 0.0078125],
+                          [0, -1, -0, -0.0078125],
+                          [-0, -0, -1, 0.87120328],
+                          [0, 0, 0, 1]])
+    camera1.setExtrisic(extrinsic)
+    change = np.array([[1, 0, 0, 0.001],
+                       [0, 1, 0, 0],
+                       [0, 0, 1, 0],
+                       [0, 0, 0, 1]])
+    camera1.showCapture([pcd], WindowUtils.getWindow("camera1"))
+    camera1.isShowTrajectory = True
+    camera1.showTrajectory(WindowUtils.getWindow("camera1 trajectory"))
+    camera2.showCapture([pcd,camera1.shape],WindowUtils.getWindow("camera2"))
+    camera1.setExtrisic(camera1.parameters.extrinsic)
+    i = 0
+    while (True):
+        print(i)
+        i = i + 1
+        camera1.setExtrisic(np.dot(camera1.parameters.extrinsic, change))
+        camera2.updateCapture()
+        camera1.updateTrajectory()
+        cv2.waitKey(100)
+
+    # external_camera = open3d.io.read_pinhole_camera_parameters("../config/externalCamera.json")
 
 # show_traj()
-camera_test_capture()
+camera_shape_test()
 
 
 
