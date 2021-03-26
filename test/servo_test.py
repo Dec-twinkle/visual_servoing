@@ -64,7 +64,9 @@ def testCalculateV():
     cam2.read_camera_parameters("../config/externalCamera.json")
     cam2.isfixed = False
     cam.isfixed = False
+    cam.isShowTrajectory = True
     cam.showCapture([pcd],wins.getWindow("cur"))
+    cam.showTrajectory(wins.getWindow("camera trajectory"))
     cam2.showCapture([pcd],wins.getWindow("dest"))
     cam2.setExtrisic(destExtrinsic)
     curCMo = np.eye(4)
@@ -79,18 +81,23 @@ def testCalculateV():
     servoTask.setHandeye(np.eye(4))
     servoTask.setDFeature(destFeature)
     robot1 = Robot()
-    robot1.setSamplingtime(0.1)
+    robot1.setSamplingtime(0.01)
     robot1.setPosition(cam.parameters.extrinsic)
     robot1.setFrame(robot1.getPosition())
+
     robot1.run()
     i=0
     extrinsic_before = None
-    while(i<2):
+    while(True):
         i=i+1
         robot1.setFrame(robot1.getPosition())
-        extrinsic_before = cam.parameters.extrinsic
+        print("robot pose:",robot1.getPosition())
+        extrinsic_before = cam.parameters.extrinsic.copy()
+        print("before:",cam.parameters.extrinsic)
         cam.setExtrisic(servoTask.getCameraPoseFromRobot(robot1.getPosition()))
         extrinsic_after = cam.parameters.extrinsic
+        print("after:",cam.parameters.extrinsic)
+        print("")
         print(utils.matrix2pose(np.dot(np.linalg.inv(extrinsic_before),extrinsic_after)))
         curFeature = projectFeature(points,cam)
         servoTask.setCFeature(curFeature)
@@ -102,6 +109,7 @@ def testCalculateV():
         robot1.setVelocity(ve)
         cam.updateCapture()
         cam2.updateCapture()
+        cam.updateTrajectory()
         time.sleep(robot1.samplingTime*10)
 
 

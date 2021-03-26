@@ -136,7 +136,7 @@ class Task():
         vc = -self.gain * np.dot(np.linalg.pinv(self.Le),self.error)
         # print("-lamba e:",-self.gain*self.error)
         # print("le vc:",np.dot(self.Le,vc))
-        return -self.gain * np.dot(np.linalg.pinv(self.Le),self.error).flatten()
+        return self.gain * np.dot(np.linalg.pinv(self.Le),self.error).flatten()
 
     def transformCameraToRobotVelocity(self,cameraVelocity):
         matrix = np.eye(4)

@@ -17,7 +17,6 @@ class camera(module_base):
         self.shape = None
         self.initShape = None
         self.vis = None
-        self.isShowTrajectory= False
         self.trajectoryShape = o3d.geometry.PointCloud()
         self.trajectoryVis = None
         self.isfixed = False
@@ -152,13 +151,15 @@ class camera(module_base):
                 self.parameters.extrinsic = extrinsic
                 self.parameters.intrinsic = self.intrinsic
         else:
+            # print("before:",self.parameters.extrinsic)
             self.parameters.extrinsic = extrinsic
+            # print("after:", self.parameters.extrinsic)
         if self.trajectory is None:
             self.trajectory = o3d.camera.PinholeCameraTrajectory()
         self.trajectory.parameters.append(self.parameters)
         if not self.vis is None:
             self.updateCapture()
-        if self.isShowTrajectory:
+        if not self.trajectoryVis is None:
             originInWord = np.dot(np.linalg.inv(self.parameters.extrinsic), np.array([[0, 0, 0, 1]]).T)
             if self.trajectoryShape.points is None:
                 self.trajectoryShape.points = o3d.Vector3dVector(np.array([originInWord[0:3,0]]))
